@@ -36,6 +36,6 @@ jobs:
         java-version: '8'
 
     - name: Publish to GitHub Packages Apache Maven
-      run: mvn -pl hudi-utilities-bundle deploy -am --batch-mode -DskipTests
+      run: mvn -pl packaging/hudi-utilities-bundle deploy -am --batch-mode -DskipTests
       env:
         GITHUB_TOKEN: ${{ github.token }}
