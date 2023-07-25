@@ -1732,7 +1732,7 @@
       <name>GitHub Packages</name>
       <url>https://maven.pkg.github.com/scoremedia/hudi</url>
       <snapshots>
-        <enabled>true</enabled>
+        <enabled>false</enabled>
       </snapshots>
     </repository>
   </distributionManagement>
