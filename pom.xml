@@ -20,18 +20,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <!--<parent>
-    <groupId>org.apache</groupId>
-    <artifactId>apache</artifactId>
-    <version>21</version>
-  </parent>-->
-
-  <groupId>bet.thescore.datalake</groupId>
+  <groupId>org.apache.hudi</groupId>
   <artifactId>hudi</artifactId>
   <packaging>pom</packaging>
   <version>0.14.0-SNAPSHOT</version>
   <description>Apache Hudi brings stream style processing on big data</description>
-  <url>https://github.com/scoremedia/hudi</url>
+  <url>https://github.com/apache/hudi</url>
   <name>Hudi</name>
 
   <modules>
@@ -228,9 +222,9 @@
   </properties>
 
   <scm>
-    <connection>scm:git:git@github.com:scoremedia/hudi.git</connection>
-    <developerConnection>scm:git:git@github.com:scoremedia/hudi.git</developerConnection>
-    <url>git@github.com:scoremedia/hudi.git</url>
+    <connection>scm:git:git@github.com:apache/hudi.git</connection>
+    <developerConnection>scm:git:git@github.com:apache/hudi.git</developerConnection>
+    <url>git@github.com:apache/hudi.git</url>
     <tag>HEAD</tag>
   </scm>
 
@@ -364,9 +358,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
         <version>${maven-deploy-plugin.version}</version>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
         <executions>
           <execution>
             <id>default-deploy</id>
