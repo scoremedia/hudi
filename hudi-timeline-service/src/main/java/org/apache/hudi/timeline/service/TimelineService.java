@@ -48,7 +48,7 @@ import java.io.Serializable;
 public class TimelineService {
 
   private static final Logger LOG = LoggerFactory.getLogger(TimelineService.class);
-  private static final int START_SERVICE_MAX_RETRIES = 16;
+  private static final int START_SERVICE_MAX_RETRIES = 64;
   private static final int DEFAULT_NUM_THREADS = 250;
 
   private int serverPort;
