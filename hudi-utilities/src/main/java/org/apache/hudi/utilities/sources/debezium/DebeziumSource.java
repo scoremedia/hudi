@@ -22,8 +22,10 @@ import org.apache.hudi.AvroConversionUtils;
 import org.apache.hudi.common.config.TypedProperties;
 import org.apache.hudi.common.util.Option;
 import org.apache.hudi.common.util.collection.Pair;
+import org.apache.hudi.exception.HoodieIOException;
 import org.apache.hudi.utilities.config.HoodieSchemaProviderConfig;
 import org.apache.hudi.utilities.config.KafkaSourceConfig;
+import org.apache.hudi.utilities.deser.KafkaAvroSchemaDeserializer;
 import org.apache.hudi.utilities.exception.HoodieReadFromSourceException;
 import org.apache.hudi.utilities.ingestion.HoodieIngestionMetrics;
 import org.apache.hudi.utilities.schema.SchemaProvider;
@@ -59,6 +61,7 @@ import java.util.stream.Collectors;
 import static org.apache.hudi.common.util.ConfigUtils.getBooleanWithAltKeys;
 import static org.apache.hudi.common.util.ConfigUtils.getStringWithAltKeys;
 import static org.apache.hudi.utilities.config.KafkaSourceConfig.KAFKA_AVRO_VALUE_DESERIALIZER_CLASS;
+import static org.apache.hudi.utilities.sources.AvroKafkaSource.KAFKA_AVRO_VALUE_DESERIALIZER_SCHEMA;
 
 /**
  * Base class for Debezium streaming source which expects change events as Kafka Avro records.
@@ -103,6 +106,15 @@ public abstract class DebeziumSource extends RowSource {
       schemaRegistryProvider = (SchemaRegistryProvider) schemaProvider;
     }
 
+    if (deserializerClassName.equals(KafkaAvroSchemaDeserializer.class.getName())) {
+      try {
+        String schemaStr = schemaRegistryProvider.fetchSchemaFromRegistry(props.getString(HoodieSchemaProviderConfig.SRC_SCHEMA_REGISTRY_URL.key()));
+        props.put(KAFKA_AVRO_VALUE_DESERIALIZER_SCHEMA, schemaStr);
+      } catch (HoodieIOException e) {
+        throw new HoodieIOException("Error setting deserializer");
+      }
+    }
+
     offsetGen = new KafkaOffsetGen(props);
     this.metrics = metrics;
   }
@@ -123,6 +135,10 @@ public abstract class DebeziumSource extends RowSource {
       try {
         String schemaStr = schemaRegistryProvider.fetchSchemaFromRegistry(getStringWithAltKeys(props, HoodieSchemaProviderConfig.SRC_SCHEMA_REGISTRY_URL));
         Dataset<Row> dataset = toDataset(offsetRanges, offsetGen, schemaStr);
+        if (dataset.count() == 0) {
+          LOG.info("After filtering for null value messages, dataframe size is empty");
+          return Pair.of(Option.of(sparkSession.emptyDataFrame()), overrideCheckpointStr.isEmpty() ? CheckpointUtils.offsetsToStr(offsetRanges) : overrideCheckpointStr);
+        }
         LOG.info(String.format("Spark schema of Kafka Payload for topic %s:\n%s", offsetGen.getTopicName(), dataset.schema().treeString()));
         LOG.info(String.format("New checkpoint string: %s", CheckpointUtils.offsetsToStr(offsetRanges)));
         return Pair.of(Option.of(dataset), overrideCheckpointStr.isEmpty() ? CheckpointUtils.offsetsToStr(offsetRanges) : overrideCheckpointStr);
@@ -153,6 +169,7 @@ public abstract class DebeziumSource extends RowSource {
     if (deserializerClassName.equals(StringDeserializer.class.getName())) {
       kafkaData = AvroConversionUtils.createDataFrame(
           KafkaUtils.<String, String>createRDD(sparkContext, offsetGen.getKafkaParams(), offsetRanges, LocationStrategies.PreferConsistent())
+              .filter(x -> filterForNullValues(x.value()))
               .map(obj -> convertor.fromJson(obj.value()))
               .rdd(), schemaStr, sparkSession);
     } else {
@@ -168,6 +185,14 @@ public abstract class DebeziumSource extends RowSource {
     // Some required transformations to ensure debezium data types are converted to spark supported types.
     return convertArrayColumnsToString(convertColumnToNullable(sparkSession,
         convertDateColumns(debeziumDataset, new Schema.Parser().parse(schemaStr))));
+  }
+
+  private static Boolean filterForNullValues(Object value) {
+    if (value == null) {
+      LOG.info("Found a null value (tombstone) message, filtering it out of the dataframe.");
+      return false;
+    }
+    return true;
   }
 
   /**
