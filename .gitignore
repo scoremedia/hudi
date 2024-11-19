@@ -65,6 +65,7 @@ local.properties
 .out
 .idea/*
 !.idea/vcs.xml
+!.idea/icon.png
 *.ipr
 *.iws
 *.iml
@@ -82,3 +83,5 @@ dependency-reduced-pom.xml
 hudi-integ-test/compose_env
 node_modules
 package-lock.json
+/.idea
+.idea/vcs.xml
