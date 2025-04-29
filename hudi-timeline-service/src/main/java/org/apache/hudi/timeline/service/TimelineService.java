@@ -33,6 +33,7 @@ import org.apache.hudi.storage.StorageConfiguration;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import io.javalin.Javalin;
+import io.javalin.core.util.JavalinBindException;
 import org.apache.hadoop.conf.Configuration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -325,18 +326,19 @@ public class TimelineService {
       // Returns port to try when trying to bind a service. Handles wrapping and skipping privileged ports.
       int tryPort = port == 0 ? port : (port + attempt - 1024) % (65536 - 1024) + 1024;
       try {
+        createApp();
         app.start(tryPort);
         return app.port();
       } catch (Exception e) {
-        if (e.getMessage() != null && e.getMessage().contains("Failed to bind to")) {
+        if (e instanceof JavalinBindException) {
           if (tryPort == 0) {
-            LOG.warn("Timeline server could not bind on a random free port.");
+            LOG.warn("Timeline server could not bind on port {}. Attempting port {} + 1.", tryPort, tryPort);
           } else {
             LOG.warn(String.format("Timeline server could not bind on port %d. "
                 + "Attempting port %d + 1.",tryPort, tryPort));
           }
         } else {
-          LOG.warn(String.format("Timeline server start failed on port %d. Attempting port %d + 1.",tryPort, tryPort), e);
+          LOG.warn("Timeline server start failed on port {}. Attempting port {} + 1.", tryPort, tryPort, e);
         }
       }
     }
@@ -344,6 +346,17 @@ public class TimelineService {
   }
 
   public int startService() throws IOException {
+    int realServerPort = startServiceOnPort(serverPort);
+    LOG.info("Starting Timeline server on port: {}", realServerPort);
+    this.serverPort = realServerPort;
+    return realServerPort;
+  }
+
+  private void createApp() throws IOException {
+    // if app needs to be recreated, stop the existing one
+    if (app != null) {
+      app.stop();
+    }
     int maxThreads = timelineServerConf.numThreads > 0 ? timelineServerConf.numThreads : DEFAULT_NUM_THREADS;
     QueuedThreadPool pool = new QueuedThreadPool(maxThreads, 8, 60_000);
     pool.setDaemon(true);
@@ -362,10 +375,6 @@ public class TimelineService {
         app, conf, timelineServerConf, context, storage, fsViewsManager);
     app.get("/", ctx -> ctx.result("Hello Hudi"));
     requestHandler.register();
-    int realServerPort = startServiceOnPort(serverPort);
-    LOG.info("Starting Timeline server on port :" + realServerPort);
-    this.serverPort = realServerPort;
-    return realServerPort;
   }
 
   public void run() throws IOException {
