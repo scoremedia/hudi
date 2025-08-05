@@ -127,9 +127,9 @@ public abstract class DebeziumSource extends RowSource {
       String schemaStr = schemaRegistryProvider.fetchSchemaFromRegistry(getStringWithAltKeys(props, HoodieSchemaProviderConfig.SRC_SCHEMA_REGISTRY_URL));
       Dataset<Row> dataset = toDataset(offsetRanges, offsetGen, schemaStr);
       if (dataset.count() == 0) {
-          LOG.info("After filtering for null value messages, dataframe size is empty");
-          return Pair.of(Option.of(sparkSession.emptyDataFrame()),new StreamerCheckpointV2(overrideCheckpointStr.isEmpty() ? CheckpointUtils.offsetsToStr(offsetRanges) : overrideCheckpointStr));
-        }
+        LOG.info("After filtering for null value messages, dataframe size is empty");
+        return Pair.of(Option.of(sparkSession.emptyDataFrame()),new StreamerCheckpointV2(overrideCheckpointStr.isEmpty() ? CheckpointUtils.offsetsToStr(offsetRanges) : overrideCheckpointStr));
+      }
       LOG.info(String.format("Spark schema of Kafka Payload for topic %s:\n%s", offsetGen.getTopicName(), dataset.schema().treeString()));
       LOG.info(String.format("New checkpoint string: %s", CheckpointUtils.offsetsToStr(offsetRanges)));
       return Pair.of(Option.of(dataset),
