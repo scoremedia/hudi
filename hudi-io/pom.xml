@@ -60,7 +60,7 @@
           </protocArtifact>
           <protoSourceRoot>${basedir}/src/main/protobuf/</protoSourceRoot>
           <clearOutputDirectory>false</clearOutputDirectory>
-          <checkStaleness>true</checkStaleness>
+          <checkStaleness>false</checkStaleness>
         </configuration>
         <executions>
           <execution>

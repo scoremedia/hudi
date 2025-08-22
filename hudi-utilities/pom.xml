@@ -66,6 +66,27 @@
       <plugin>
         <groupId>com.github.os72</groupId>
         <artifactId>protoc-jar-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <protocVersion>${protoc.version}</protocVersion>
+              <inputDirectories>
+                <include>src/test/resources/schema-provider/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <type>java</type>
+                  <outputDirectory>target/generated-test-sources/protoc</outputDirectory>
+                  <addSources>test</addSources>
+                </outputTarget>
+              </outputTargets>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
 
