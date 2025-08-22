@@ -43,6 +43,7 @@ import org.apache.hudi.utilities.sources.helpers.SanitizationUtils;
 import com.google.protobuf.Message;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -205,8 +206,20 @@ public class SourceFormatAdapter implements Closeable {
       case PROTO: {
         //TODO([HUDI-5830]) implement field name sanitization
         InputBatch<JavaRDD<Message>> r = ((Source<JavaRDD<Message>>) source).fetchNext(lastCheckpoint, sourceLimit);
-        AvroConvertor convertor = new AvroConvertor(r.getSchemaProvider().getSourceSchema());
-        return new InputBatch<>(Option.ofNullable(r.getBatch().map(rdd -> rdd.map(convertor::fromProtoMessage)).orElse(null)),
+        final AvroConvertor convertor = new AvroConvertor(r.getSchemaProvider().getSourceSchema());
+        
+        return new InputBatch<>(Option.ofNullable(r.getBatch().map(
+            new java.util.function.Function<JavaRDD<Message>, JavaRDD<GenericRecord>>() {
+              @Override
+              public JavaRDD<GenericRecord> apply(JavaRDD<Message> rdd) {
+                return rdd.map(new Function<Message, GenericRecord>() {
+                  @Override
+                  public GenericRecord call(Message message) {
+                    return convertor.fromProtoMessage(message);
+                  }
+                });
+              }
+            }).orElse(null)),
             r.getCheckpointForNextBatch(), r.getSchemaProvider());
       }
       default:
