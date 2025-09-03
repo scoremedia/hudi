@@ -862,6 +862,7 @@ public class HoodieStreamer implements Serializable {
                 LOG.warn("Closing and shutting down ingestion service");
                 error = true;
                 onIngestionCompletes(false);
+                shutdownAsyncServices(error);
                 shutdown(true);
               } else {
                 sleepBeforeNextIngestion(start);
